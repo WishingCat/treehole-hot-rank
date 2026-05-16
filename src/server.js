@@ -8,6 +8,7 @@ import { TreeholeCrawler } from "./crawler.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || "0.0.0.0";
 
 const store = new HotStore(path.join(rootDir, "data", "hot-cache.json"));
 await store.load();
@@ -29,6 +30,7 @@ app.get("/api/status", (request, response) => {
     status: store.status,
     stats: store.stats(),
     config: {
+      host,
       scheduleMode: crawler.scheduleMode,
       intervalMs: crawler.intervalMs,
       nextRunAt: crawler.nextRunAt,
@@ -81,6 +83,10 @@ app.use((request, response) => {
   response.sendFile(path.join(rootDir, "public", "index.html"));
 });
 
+function displayHost(hostValue) {
+  return hostValue === "0.0.0.0" ? "localhost" : hostValue;
+}
+
 function listenWithRetry(startPort, attempts = 20) {
   return new Promise((resolve, reject) => {
     const tryListen = (candidatePort, remaining) => {
@@ -92,15 +98,19 @@ function listenWithRetry(startPort, attempts = 20) {
         }
         reject(error);
       });
-      server.listen(candidatePort, () => resolve({ server, port: candidatePort }));
+      server.listen(candidatePort, host, () =>
+        resolve({ server, host, port: candidatePort }),
+      );
     };
 
     tryListen(startPort, attempts);
   });
 }
 
-const { server, port: actualPort } = await listenWithRetry(port);
-console.log(`Treehole hot rank is running at http://localhost:${actualPort}`);
+const { server, host: actualHost, port: actualPort } = await listenWithRetry(port);
+console.log(
+  `Treehole hot rank is running at http://${displayHost(actualHost)}:${actualPort}`,
+);
 
 crawler.refresh({ reason: "startup" }).catch((error) => {
   console.error("[crawler] startup refresh failed:", error.message || error);

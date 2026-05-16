@@ -16,6 +16,7 @@ npm start
 可选环境变量：
 
 ```bash
+HOST=0.0.0.0
 PORT=3000
 TREEHOLE_SCHEDULE_MODE=hourly
 TREEHOLE_CRAWL_INTERVAL_MS=3600000
@@ -27,7 +28,7 @@ TREEHOLE_TOKEN="..."
 TREEHOLE_UUID="..."
 ```
 
-默认 `TREEHOLE_SCHEDULE_MODE=hourly`，服务启动后会先立即抓取一次，之后在每个整点触发下一轮抓取。若想恢复成固定间隔轮询，可以设为 `TREEHOLE_SCHEDULE_MODE=interval` 并用 `TREEHOLE_CRAWL_INTERVAL_MS` 控制间隔。
+默认 `TREEHOLE_SCHEDULE_MODE=hourly`，服务启动后会先立即抓取一次，之后在每个整点触发下一轮抓取。若想恢复成固定间隔轮询，可以设为 `TREEHOLE_SCHEDULE_MODE=interval` 并用 `TREEHOLE_CRAWL_INTERVAL_MS` 控制间隔。若放在 Nginx 后面，建议设置 `HOST=127.0.0.1`。
 
 不设置 `TREEHOLE_TOKEN` 时，会自动扫描 macOS Chrome profile 中 `treehole.pku.edu.cn` 的本地存储。缓存文件写在 `data/hot-cache.json`。
 
