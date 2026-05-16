@@ -117,10 +117,14 @@ h1 {
 
 .top-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .primary-button,
+.github-nav,
 .segment {
   min-height: 40px;
   border: 1px solid var(--line);
@@ -133,6 +137,24 @@ h1 {
     color 160ms ease;
 }
 
+.designer-credit {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.github-nav {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--ink);
+  background: rgba(255, 253, 249, 0.72);
+  font-size: 14px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
 .primary-button {
   padding: 0 18px;
   color: #fff;
@@ -141,6 +163,7 @@ h1 {
 }
 
 .primary-button:hover,
+.github-nav:hover,
 .segment:hover {
   transform: translateY(-1px);
 }
@@ -462,6 +485,10 @@ dd {
 
   .topbar {
     flex-direction: column;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
   }
 
   .control-bar,
