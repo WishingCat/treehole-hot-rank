@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>树洞热榜</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient"></div>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-image" aria-hidden="true"></div>
+          <div>
+            <p class="eyebrow">PKU Treehole Hot Rank</p>
+            <h1>树洞热榜</h1>
+            <p id="statusLine" class="status-line">等待首次抓取</p>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button id="refreshBtn" class="primary-button" type="button">刷新抓取</button>
+        </div>
+      </header>
+
+      <section class="control-bar" aria-label="榜单筛选">
+        <div class="segmented" role="group" aria-label="时间范围">
+          <button class="segment" data-window="hour" type="button">小时榜</button>
+          <button class="segment active" data-window="day" type="button">日榜</button>
+          <button class="segment" data-window="week" type="button">周榜</button>
+        </div>
+        <div class="segmented" role="group" aria-label="排序方式">
+          <button class="segment" data-sort="reply" type="button">回复数</button>
+          <button class="segment active" data-sort="follow" type="button">关注数</button>
+        </div>
+        <label class="search-field">
+          <span>搜索</span>
+          <input id="searchInput" type="search" placeholder="#PID / 关键词 / 标签" />
+        </label>
+      </section>
+
+      <main class="workspace">
+        <section class="leaderboard" aria-live="polite">
+          <div class="section-head">
+            <div>
+              <h2 id="listTitle">日榜 · 关注数</h2>
+              <p id="listMeta">正在读取缓存</p>
+            </div>
+            <div id="sampleCount" class="sample-count">0 条</div>
+          </div>
+          <div id="emptyState" class="empty-state" hidden>
+            <h3>暂无榜单数据</h3>
+            <p>保持 Chrome 已登录树洞，然后点一次刷新抓取。</p>
+          </div>
+          <div id="postList" class="post-list"></div>
+        </section>
+
+        <aside class="side-panel">
+          <h2>抓取状态</h2>
+          <dl class="status-grid">
+            <div>
+              <dt>近 1 小时</dt>
+              <dd id="hourCount">0</dd>
+            </div>
+            <div>
+              <dt>近 24 小时</dt>
+              <dd id="dayCount">0</dd>
+            </div>
+            <div>
+              <dt>近 7 天</dt>
+              <dd id="weekCount">0</dd>
+            </div>
+            <div>
+              <dt>缓存总量</dt>
+              <dd id="cacheCount">0</dd>
+            </div>
+            <div>
+              <dt>抓取页数</dt>
+              <dd id="pageCount">0</dd>
+            </div>
+          </dl>
+          <div class="status-copy">
+            <p><span>最近成功</span><strong id="lastSuccess">尚未成功</strong></p>
+            <p><span>登录来源</span><strong id="authSource">未确认</strong></p>
+            <p><span>抓取调度</span><strong id="intervalText">每到整点</strong></p>
+            <p id="errorLine" class="error-line" hidden></p>
+          </div>
+        </aside>
+      </main>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
