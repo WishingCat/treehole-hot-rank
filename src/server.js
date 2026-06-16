@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { HotStore } from "./store.js";
 import { TreeholeCrawler } from "./crawler.js";
 import { DeletedPostTracker } from "./deletedTracker.js";
+import { MediaArchiver } from "./mediaArchiver.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
@@ -34,6 +35,9 @@ await store.load();
 const crawler = new TreeholeCrawler(store);
 const deletedTracker = new DeletedPostTracker(store, dataDir);
 await deletedTracker.load();
+const mediaArchiver = new MediaArchiver(dataDir);
+await mediaArchiver.load();
+crawler.mediaArchiver = mediaArchiver;
 const app = express();
 const allowedWindows = new Set(["hour", "day", "week"]);
 
@@ -41,6 +45,16 @@ app.use(express.json());
 app.use(
   express.static(path.join(rootDir, "public"), {
     extensions: ["html"],
+  }),
+);
+
+// 已归档的树洞图片（永久本地副本，公开浏览，长缓存）。
+app.use(
+  "/media",
+  express.static(path.join(dataDir, "media", "files"), {
+    immutable: true,
+    maxAge: "30d",
+    fallthrough: true,
   }),
 );
 
@@ -333,6 +347,7 @@ app.get("/api/status", (request, response) => {
       maxLoadedSummaryShards: store.maxLoadedSummaryShards,
       topCacheLimit: store.topCacheLimit,
       deletedScan: deletedTracker.publicStatus(),
+      mediaArchive: mediaArchiver.publicStatus(),
     },
   });
 });
@@ -512,9 +527,11 @@ app.get("/api/post/:pid", async (request, response, next) => {
       response.status(404).json({ ok: false, error: "帖子未在本地缓存中找到" });
       return;
     }
+    const images = await mediaArchiver.getImages(post).catch(() => []);
     response.json({
       ok: true,
       post,
+      images,
       status: statusForRequest(request),
     });
   } catch (error) {
@@ -624,13 +641,16 @@ crawler.refresh({ reason: "startup", mode: startupMode }).catch((error) => {
 });
 crawler.startScheduler();
 deletedTracker.startScheduler();
+mediaArchiver.start();
 
 const shutdown = () => {
   crawler.stopScheduler();
   deletedTracker.stopScheduler();
-  store
-    .shutdown()
-    .catch((error) => console.error("[store] shutdown flush failed:", error.message || error))
+  Promise.allSettled([
+    store.shutdown(),
+    mediaArchiver.shutdown(),
+  ])
+    .catch((error) => console.error("[shutdown] flush failed:", error.message || error))
     .finally(() => server.close(() => process.exit(0)));
 };
 process.on("SIGINT", shutdown);

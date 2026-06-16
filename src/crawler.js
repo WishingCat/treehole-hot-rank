@@ -32,6 +32,7 @@ function nextHourDate(now = new Date()) {
 export class TreeholeCrawler {
   constructor(store, options = {}) {
     this.store = store;
+    this.mediaArchiver = options.mediaArchiver || null;
     this.pageSize = options.pageSize || envNumber("TREEHOLE_PAGE_SIZE", 100);
     this.maxPages = options.maxPages || envNumber("TREEHOLE_MAX_PAGES", 240);
     this.incrementalMaxPages =
@@ -268,6 +269,10 @@ export class TreeholeCrawler {
         const normalized = list.map(normalizePost);
         posts.push(...normalized);
         pendingPosts.push(...normalized);
+        // 把图片帖排入后台图片归档队列（非阻塞、内部去重，不影响抓取主流程）。
+        if (this.mediaArchiver) {
+          this.mediaArchiver.enqueueImagePosts(normalized).catch(() => {});
+        }
         oldestTimestamp = Math.min(
           oldestTimestamp,
           ...normalized.map((post) => post.timestamp || Number.POSITIVE_INFINITY),

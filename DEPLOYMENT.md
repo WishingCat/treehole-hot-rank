@@ -74,6 +74,11 @@ TREEHOLE_COMMENT_LIMIT_ARCHIVE=100
 TREEHOLE_MAX_LOADED_SHARDS=4
 TREEHOLE_MAX_LOADED_SUMMARY_SHARDS=8
 TREEHOLE_TOP_CACHE_LIMIT=5000
+TREEHOLE_IMAGE_ARCHIVE_ENABLED=1
+TREEHOLE_IMAGE_CONCURRENCY=3
+TREEHOLE_IMAGE_DELAY_MS=250
+TREEHOLE_IMAGE_MAX_BYTES=26214400
+TREEHOLE_IMAGE_MIN_FREE_GB=5
 TREEHOLE_DELETED_SCAN_ENABLED=1
 TREEHOLE_DELETED_SCAN_HOUR=4
 TREEHOLE_DELETED_PAGE_SIZE=500
@@ -96,6 +101,8 @@ sudo chmod 600 /etc/treehole-hot-rank.env
 
 `TREEHOLE_ARCHIVE_ENABLED=1` 会让服务器启动后自动分片抓取过去一年的帖子。归档进度会写入缓存文件，重启后从上次页数继续。访问者可以打开“历史库”，在所有本地已缓存帖子里按回复数或关注数排序，并通过月份、日期范围、PID、关键词或标签搜索。
 
+`TREEHOLE_IMAGE_ARCHIVE_ENABLED=1` 会让服务在抓取帖子的同时，把图片帖里的图片下载到本地永久保存（`data/media/`），并经 `/media/...` 公开访问、内嵌展示在帖子详情里。图片帖约占缓存帖的 9%，全量约几十 GB；`TREEHOLE_IMAGE_MIN_FREE_GB` 会在磁盘可用空间不足时自动暂停下载。部署后用 `df -h /` 与 `du -sh data/media` 观察占盘。
+
 页面栏目和加载策略：
 
 - 第一层栏目是“实时数据 / 热榜 / 历史库 / 被删帖”。
@@ -113,6 +120,9 @@ sudo chmod 600 /etc/treehole-hot-rank.env
 - `data/index.json`：帖子 PID 到月份分片的索引，以及分片统计。
 - `data/status.json`：抓取状态。
 - `data/deleted-posts.json`：被删帖对比结果。
+- `data/media/<YYYY-MM>.json`：按月保存的帖子图片清单（pid → 本地图片文件）。
+- `data/media/files/<YYYY-MM>/<pid>-<序号>.<ext>`：下载保存的图片原文件，经 `/media/...` 访问。
+- `data/media/status.json`：图片归档累计进度。
 - `data/hot-cache.json`：旧版本遗留缓存文件，仅用于迁移场景。
 
 历史库和榜单接口使用 `data/summaries/*.json` 和 `data/tops/*.json` 的轻量缓存，避免反复解析带留言的大型月度分片。首次部署、迁移旧缓存，或发现 `data/summaries` 缺失时，先运行：
@@ -136,6 +146,20 @@ UUID="$(awk -F= '$1=="TREEHOLE_UUID"{sub(/^[^=]*=/,""); print; exit}' /etc/treeh
 sudo -u ubuntu env TREEHOLE_TOKEN="$TOKEN" TREEHOLE_UUID="$UUID" npm run deleted-scan
 EOF
 ```
+
+新上线图片归档功能后，服务会自动下载“新抓到 / 重抓到”的图片帖图片。要把**已缓存的存量图片帖**也补齐图片，可跑一次回填（仍存在的帖能下到，已删的下不到属正常）。可用 `TREEHOLE_MEDIA_SCAN_MONTHS=N` 只回填最近 N 个月、或 `TREEHOLE_MEDIA_SCAN_ONLY=2026-06,2026-05` 指定月份：
+
+```bash
+sudo bash -s <<'EOF'
+set -euo pipefail
+cd /home/ubuntu/treehole-hot-rank
+TOKEN="$(awk -F= '$1=="TREEHOLE_TOKEN"{sub(/^[^=]*=/,""); print; exit}' /etc/treehole-hot-rank.env)"
+UUID="$(awk -F= '$1=="TREEHOLE_UUID"{sub(/^[^=]*=/,""); print; exit}' /etc/treehole-hot-rank.env)"
+sudo -u ubuntu env TREEHOLE_TOKEN="$TOKEN" TREEHOLE_UUID="$UUID" TREEHOLE_MEDIA_SCAN_MONTHS=2 npm run media-scan
+EOF
+```
+
+> 回填脚本会读写 `data/media/`，与正在运行的服务共用同一目录。两者都用原子写，但若同月同时大量写入仍可能互相覆盖少量清单条目；建议在低峰期运行，或先 `sudo systemctl stop treehole-hot-rank` 再跑、跑完再启动。
 
 ## systemd 服务
 
@@ -239,6 +263,8 @@ node --check src/migrate-cache.js
 node --check src/warm-summaries.js
 node --check src/deletedTracker.js
 node --check src/deleted-scan.js
+node --check src/mediaArchiver.js
+node --check src/media-scan.js
 node --check public/app.js
 
 rsync -av --delete \

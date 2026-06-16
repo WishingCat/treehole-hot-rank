@@ -10,7 +10,8 @@
     "smoke": "node src/smoke.js",
     "migrate-cache": "node src/migrate-cache.js",
     "warm-summaries": "node src/warm-summaries.js",
-    "deleted-scan": "node src/deleted-scan.js"
+    "deleted-scan": "node src/deleted-scan.js",
+    "media-scan": "node src/media-scan.js"
   },
   "dependencies": {
     "express": "^5.1.0",

@@ -74,6 +74,12 @@ const nodes = {
   detailDialog: document.querySelector("#detailDialog"),
   detailClose: document.querySelector("#detailClose"),
   detailContent: document.querySelector("#detailContent"),
+  lightbox: document.querySelector("#imageLightbox"),
+  lightboxImg: document.querySelector("#lightboxImg"),
+  lightboxClose: document.querySelector("#lightboxClose"),
+  lightboxPrev: document.querySelector("#lightboxPrev"),
+  lightboxNext: document.querySelector("#lightboxNext"),
+  lightboxCounter: document.querySelector("#lightboxCounter"),
 };
 
 function escapeHtml(value) {
@@ -428,9 +434,22 @@ function renderDetail(post) {
   const tags = (post.tags || [])
     .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
     .join("");
-  const media = (post.mediaIds || [])
-    .map((id) => `<span class="media-chip">媒体 ${escapeHtml(id)}</span>`)
-    .join("");
+  const images = Array.isArray(post.images) ? post.images : [];
+  const hasMedia = Number(post.mediaCount || 0) > 0 || post.type === "image";
+  const imageGrid = images.length
+    ? `<div class="detail-images" data-count="${images.length}">${images
+        .map(
+          (img, index) =>
+            `<button type="button" class="detail-image" data-image-index="${index}" aria-label="放大查看第 ${index + 1} 张图片"><img src="${escapeHtml(
+              img.src,
+            )}" loading="lazy" decoding="async" alt="树洞图片 ${index + 1}" /></button>`,
+        )
+        .join("")}</div>`
+    : "";
+  const mediaPending =
+    !images.length && hasMedia && !post.detailLoading
+      ? '<p class="media-pending">图片暂未归档（后台持续抓取中）</p>'
+      : "";
   const comments = (post.comments || [])
     .map(
       (comment) => `
@@ -472,7 +491,8 @@ function renderDetail(post) {
       <div class="metric"><strong>${post.tread || 0}</strong><span>踩</span></div>
     </div>
     ${tags ? `<div class="tags detail-tags">${tags}</div>` : ""}
-    ${media ? `<div class="media-list">${media}</div>` : ""}
+    ${imageGrid}
+    ${mediaPending}
     <section class="comments-section">
       <h3>已缓存留言 ${cachedCommentCount} / ${displayedCommentTotal}</h3>
       ${commentBody}
@@ -488,8 +508,51 @@ function openDetail(post) {
 }
 
 function closeDetail() {
+  closeLightbox();
   nodes.detailDialog.hidden = true;
   document.body.classList.remove("reader-open");
+}
+
+// ---- 图片灯箱（放大查看帖内图片）----
+let lightboxImages = [];
+let lightboxIndex = 0;
+
+function renderLightbox() {
+  if (!nodes.lightbox || !lightboxImages.length) return;
+  const image = lightboxImages[lightboxIndex];
+  if (nodes.lightboxImg) {
+    nodes.lightboxImg.src = image.src;
+    nodes.lightboxImg.alt = `树洞图片 ${lightboxIndex + 1}`;
+  }
+  const multi = lightboxImages.length > 1;
+  if (nodes.lightboxCounter) {
+    nodes.lightboxCounter.textContent = `${lightboxIndex + 1} / ${lightboxImages.length}`;
+    nodes.lightboxCounter.hidden = !multi;
+  }
+  if (nodes.lightboxPrev) nodes.lightboxPrev.hidden = !multi;
+  if (nodes.lightboxNext) nodes.lightboxNext.hidden = !multi;
+}
+
+function openLightbox(images, index) {
+  if (!nodes.lightbox || !Array.isArray(images) || !images.length) return;
+  lightboxImages = images;
+  lightboxIndex = Math.max(0, Math.min(index, images.length - 1));
+  renderLightbox();
+  nodes.lightbox.hidden = false;
+  document.body.classList.add("reader-open");
+}
+
+function closeLightbox() {
+  if (!nodes.lightbox || nodes.lightbox.hidden) return;
+  nodes.lightbox.hidden = true;
+  if (nodes.lightboxImg) nodes.lightboxImg.removeAttribute("src");
+  if (nodes.detailDialog.hidden) document.body.classList.remove("reader-open");
+}
+
+function stepLightbox(delta) {
+  if (lightboxImages.length < 2) return;
+  lightboxIndex = (lightboxIndex + delta + lightboxImages.length) % lightboxImages.length;
+  renderLightbox();
 }
 
 async function fetchJson(url, options = {}) {
@@ -745,7 +808,7 @@ async function loadPost(pid, seedPost = null) {
     ) {
       return;
     }
-    openDetail(data.post);
+    openDetail({ ...data.post, images: data.images || [] });
   } catch (error) {
     if (!seedPost) throw error;
     if (nodes.detailDialog.hidden || String(state.detailPost?.pid) !== requestedPid) return;
@@ -918,7 +981,29 @@ nodes.detailDialog.addEventListener("click", (event) => {
   if (event.target === nodes.detailDialog) closeDetail();
 });
 
+// 点击详情里的图片 → 打开灯箱
+nodes.detailContent?.addEventListener("click", (event) => {
+  const trigger = event.target.closest(".detail-image");
+  if (!trigger) return;
+  const index = Number(trigger.dataset.imageIndex || 0);
+  const images = Array.isArray(state.detailPost?.images) ? state.detailPost.images : [];
+  if (images.length) openLightbox(images, index);
+});
+
+nodes.lightboxClose?.addEventListener("click", closeLightbox);
+nodes.lightbox?.addEventListener("click", (event) => {
+  if (event.target === nodes.lightbox) closeLightbox();
+});
+nodes.lightboxPrev?.addEventListener("click", () => stepLightbox(-1));
+nodes.lightboxNext?.addEventListener("click", () => stepLightbox(1));
+
 document.addEventListener("keydown", (event) => {
+  if (nodes.lightbox && !nodes.lightbox.hidden) {
+    if (event.key === "Escape") closeLightbox();
+    else if (event.key === "ArrowLeft") stepLightbox(-1);
+    else if (event.key === "ArrowRight") stepLightbox(1);
+    return;
+  }
   if (event.key === "Escape" && !nodes.detailDialog.hidden) closeDetail();
 });
 

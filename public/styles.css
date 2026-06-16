@@ -1055,21 +1055,154 @@ body.reader-open {
   color: var(--text);
 }
 
-.detail-tags,
-.media-list {
+.detail-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 18px;
 }
 
-.media-chip {
-  padding: 5px 11px;
-  border: 1px solid var(--gold-soft);
-  border-radius: 999px;
-  color: var(--gold);
+/* 帖内图片网格（树洞原帖的图片，已本地归档） */
+.detail-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.detail-images[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detail-image {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--inset);
+  cursor: zoom-in;
+  overflow: hidden;
+  transition: border-color 160ms ease, transform 160ms ease;
+}
+
+.detail-image:hover {
+  border-color: var(--seal);
+  transform: translateY(-2px);
+}
+
+.detail-image:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.detail-image img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+}
+
+.detail-images[data-count="1"] .detail-image img {
+  max-height: 640px;
+  object-fit: contain;
+}
+
+.media-pending {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--text-faint);
   font-family: var(--font-num);
-  font-size: 12.5px;
+  font-size: 13px;
+}
+
+/* 图片灯箱 */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  background: var(--scrim);
+  backdrop-filter: blur(12px);
+}
+
+.lightbox[hidden] {
+  display: none !important;
+}
+
+.lightbox-img {
+  max-width: min(100%, 1100px);
+  max-height: calc(100vh - 64px);
+  border-radius: 8px;
+  box-shadow: var(--shadow-reader);
+  animation: reader-rise 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lightbox-close,
+.lightbox-nav {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.lightbox-close {
+  top: 22px;
+  right: 22px;
+  width: 42px;
+  height: 42px;
+  font-size: 24px;
+}
+
+.lightbox-nav {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  font-size: 30px;
+}
+
+.lightbox-prev {
+  left: 22px;
+}
+
+.lightbox-next {
+  right: 22px;
+}
+
+.lightbox-close:hover,
+.lightbox-nav:hover {
+  color: var(--seal-bright);
+  border-color: var(--seal);
+}
+
+.lightbox-nav[hidden] {
+  display: none !important;
+}
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  font-family: var(--font-num);
+  font-size: 13px;
 }
 
 .comments-section {
