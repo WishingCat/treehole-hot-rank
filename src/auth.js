@@ -6,6 +6,8 @@ import { Level } from "level";
 const TREEHOLE_ORIGIN_KEY = "_https://treehole.pku.edu.cn";
 const DEFAULT_UUID = "94B7DB0A74D347E7A6B29AE9569079AC";
 const LOCAL_STORAGE_VALUE_PREFIX = "\x01";
+const CACHE_EXPIRY_BUFFER_SECONDS = 5 * 60;
+let cachedAuth = null;
 
 function chromeBaseDir() {
   return (
@@ -43,7 +45,13 @@ function authFromEnv() {
 
 async function discoverProfileDirs() {
   const base = chromeBaseDir();
-  const entries = await fs.readdir(base, { withFileTypes: true });
+  let entries;
+  try {
+    entries = await fs.readdir(base, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
   return entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => ({
@@ -111,16 +119,35 @@ async function readProfileLocalStorage(profile) {
   };
 }
 
-function isUsableAuth(auth) {
+function isUsableAuth(auth, bufferSeconds = 60) {
   if (!auth?.token) return false;
   if (!auth.expiresAt) return true;
   const now = Math.floor(Date.now() / 1000);
-  return Number(auth.expiresAt) > now + 60;
+  return Number(auth.expiresAt) > now + bufferSeconds;
 }
 
-export async function resolveTreeholeAuth() {
+export function clearTreeholeAuthCache() {
+  cachedAuth = null;
+}
+
+export async function resolveTreeholeAuth({ force = false } = {}) {
+  if (!force && isUsableAuth(cachedAuth, CACHE_EXPIRY_BUFFER_SECONDS)) {
+    return cachedAuth;
+  }
+
   const envAuth = authFromEnv();
-  if (isUsableAuth(envAuth)) return envAuth;
+  if (isUsableAuth(envAuth, CACHE_EXPIRY_BUFFER_SECONDS)) {
+    cachedAuth = envAuth;
+    return envAuth;
+  }
+  if (envAuth && process.platform !== "darwin" && !process.env.CHROME_USER_DATA_DIR) {
+    const expiry = envAuth.expiresAt
+      ? new Date(Number(envAuth.expiresAt) * 1000).toISOString()
+      : "未知时间";
+    throw new Error(
+      `TREEHOLE_TOKEN 已过期或即将过期，过期时间 ${expiry}；请更新服务器环境变量中的 TREEHOLE_TOKEN/TREEHOLE_UUID。`,
+    );
+  }
 
   const preferredProfile = process.env.TREEHOLE_CHROME_PROFILE;
   const profiles = await discoverProfileDirs();
@@ -145,6 +172,7 @@ export async function resolveTreeholeAuth() {
     );
   }
 
+  cachedAuth = usable;
   return usable;
 }
 
