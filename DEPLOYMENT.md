@@ -71,6 +71,7 @@ TREEHOLE_ARCHIVE_MAX_PAGES=5000
 TREEHOLE_ARCHIVE_SLICE_PAGES=1
 TREEHOLE_ARCHIVE_INTERVAL_MS=15000
 TREEHOLE_COMMENT_LIMIT_ARCHIVE=100
+TREEHOLE_ARCHIVE_FORCE_RESUME=0
 TREEHOLE_MAX_LOADED_SHARDS=4
 TREEHOLE_MAX_LOADED_SUMMARY_SHARDS=8
 TREEHOLE_TOP_CACHE_LIMIT=5000
@@ -102,6 +103,25 @@ sudo chmod 600 /etc/treehole-hot-rank.env
 `TREEHOLE_ARCHIVE_ENABLED=1` 会让服务器启动后自动分片抓取过去一年的帖子。归档进度会写入缓存文件，重启后从上次页数继续。访问者可以打开“历史库”，在所有本地已缓存帖子里按回复数或关注数排序，并通过月份、日期范围、PID、关键词或标签搜索。
 
 `TREEHOLE_IMAGE_ARCHIVE_ENABLED=1` 会让服务在抓取帖子的同时，把图片帖里的图片下载到本地永久保存（`data/media/`），并经 `/media/...` 公开访问、内嵌展示在帖子详情里。图片帖约占缓存帖的 9%，全量约几十 GB；`TREEHOLE_IMAGE_MIN_FREE_GB` 会在磁盘可用空间不足时自动暂停下载。部署后用 `df -h /` 与 `du -sh data/media` 观察占盘。
+
+### 抓取更早的历史（加深归档）
+
+归档默认只回溯 `TREEHOLE_ARCHIVE_DAYS` 天、最多 `TREEHOLE_ARCHIVE_MAX_PAGES` 页，抓到上限后会标记“完成”，之后即使调大上限也不会自动重启。要回溯更早，调大上限并打开 `TREEHOLE_ARCHIVE_FORCE_RESUME` 让它从上次停下的页继续：
+
+```bash
+# 例：回溯到 2023-01（北大树洞开端）。约每 1000 页 ≈ 1 个月，
+# 实测第 5000 页≈2025-09、第 34000 页≈2023-01。
+sudo sed -i \
+  -e 's/^TREEHOLE_ARCHIVE_DAYS=.*/TREEHOLE_ARCHIVE_DAYS=1280/' \
+  -e 's/^TREEHOLE_ARCHIVE_MAX_PAGES=.*/TREEHOLE_ARCHIVE_MAX_PAGES=40000/' \
+  -e 's/^TREEHOLE_ARCHIVE_SLICE_PAGES=.*/TREEHOLE_ARCHIVE_SLICE_PAGES=6/' \
+  -e 's/^TREEHOLE_ARCHIVE_FORCE_RESUME=.*/TREEHOLE_ARCHIVE_FORCE_RESUME=1/' \
+  /etc/treehole-hot-rank.env
+sudo systemctl restart treehole-hot-rank
+sudo journalctl -u treehole-hot-rank -n 20 --no-pager | grep -i 'force-resume\|archive' || true
+```
+
+进度看 `/api/status` 的 `config.archive`（`nextPage` 递增、`oldestTimestamp` 变早）。回溯完成（再次 `completed`）后可把 `TREEHOLE_ARCHIVE_FORCE_RESUME` 改回 `0`（留着也只是每次重启多抓一页）。被这一步带出来的更早图片帖会被图片归档器自动下载（受 `TREEHOLE_IMAGE_MIN_FREE_GB` 磁盘阈值保护）。**注意：帖文/留言 JSON 没有磁盘阈值保护，回溯极深时先用 `df -h /` 确认空间充足。**
 
 页面栏目和加载策略：
 

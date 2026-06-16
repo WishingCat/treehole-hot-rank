@@ -50,6 +50,8 @@ export class TreeholeCrawler {
       options.backfillIntervalMs || envNumber("TREEHOLE_BACKFILL_INTERVAL_MS", 60 * 60 * 1000);
     this.archiveEnabled =
       options.archiveEnabled ?? envFlag("TREEHOLE_ARCHIVE_ENABLED", false);
+    this.archiveForceResume =
+      options.archiveForceResume ?? envFlag("TREEHOLE_ARCHIVE_FORCE_RESUME", false);
     this.archiveDays = options.archiveDays || envNumber("TREEHOLE_ARCHIVE_DAYS", 365);
     this.archiveMaxPages =
       options.archiveMaxPages || envNumber("TREEHOLE_ARCHIVE_MAX_PAGES", 5000);
@@ -113,7 +115,25 @@ export class TreeholeCrawler {
 
   startArchiveScheduler() {
     if (!this.archiveEnabled) return;
-    if (this.store.status.archive?.completed) return;
+    const archive = this.store.status.archive;
+    if (archive?.completed) {
+      if (!this.archiveForceResume) return;
+      // 带着更大的天数/页数上限续抓更早的历史：清除完成标记，从上次停下的页继续。
+      const resumeFrom = Math.max(1, Number(archive.nextPage || archive.lastPageFetched || 1));
+      this.store.status.archive = {
+        ...archive,
+        completed: false,
+        running: false,
+        reachedMaxPages: false,
+        nextPage: resumeFrom,
+      };
+      this.store.statusDirty = true;
+      this.store.indexDirty = true;
+      this.store.schedulePersist();
+      console.log(
+        `[crawler] archive force-resume from page ${resumeFrom} (days=${this.archiveDays}, maxPages=${this.archiveMaxPages})`,
+      );
+    }
     this.scheduleArchiveRun(1000);
   }
 

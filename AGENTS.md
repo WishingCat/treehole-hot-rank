@@ -34,7 +34,7 @@ Useful runtime environment variables from the README:
 - `HOST` / `PORT`: server bind address and initial port; the server retries later ports if occupied.
 - `TREEHOLE_SCHEDULE_MODE=hourly|interval`: default is interval, running at startup and then every `TREEHOLE_CRAWL_INTERVAL_MS`.
 - `TREEHOLE_CRAWL_INTERVAL_MS`, `TREEHOLE_PAGE_SIZE`, `TREEHOLE_MAX_PAGES`: crawler pacing and fetch limits.
-- `TREEHOLE_ARCHIVE_ENABLED`, `TREEHOLE_ARCHIVE_DAYS`, `TREEHOLE_ARCHIVE_SLICE_PAGES`, `TREEHOLE_ARCHIVE_INTERVAL_MS`: background archive crawling.
+- `TREEHOLE_ARCHIVE_ENABLED`, `TREEHOLE_ARCHIVE_DAYS`, `TREEHOLE_ARCHIVE_SLICE_PAGES`, `TREEHOLE_ARCHIVE_INTERVAL_MS`: background archive crawling. `TREEHOLE_ARCHIVE_MAX_PAGES` caps how deep it paginates and `TREEHOLE_ARCHIVE_DAYS` how far back it goes; `TREEHOLE_ARCHIVE_FORCE_RESUME=1` makes a previously-completed archive resume (from its last page) so raised `DAYS`/`MAX_PAGES` limits take effect and crawl earlier history.
 - `TREEHOLE_DELETED_SCAN_ENABLED`, `TREEHOLE_DELETED_SCAN_HOUR`, `TREEHOLE_DELETED_LOOKBACK_DAYS`: deleted-post comparison scheduling and scope.
 - `TREEHOLE_MAX_LOADED_SHARDS`, `TREEHOLE_MAX_LOADED_SUMMARY_SHARDS`, `TREEHOLE_TOP_CACHE_LIMIT`: memory/cache limits for shard loading and top caches.
 - `TREEHOLE_IMAGE_ARCHIVE_ENABLED`, `TREEHOLE_IMAGE_BASE`, `TREEHOLE_IMAGE_CONCURRENCY`, `TREEHOLE_IMAGE_DELAY_MS`, `TREEHOLE_IMAGE_MAX_BYTES`, `TREEHOLE_IMAGE_MIN_FREE_GB`: in-post image archiving (download endpoint, concurrency, politeness, per-image size cap, and a free-disk floor that pauses downloads).
