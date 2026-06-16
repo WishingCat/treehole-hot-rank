@@ -6,16 +6,14 @@
     <meta name="color-scheme" content="dark light" />
     <title>北大树洞 · 夜话集</title>
     <script>
-      // 在首帧前定主题，避免昼/夜闪烁（FOUC）
+      // 在首帧前定主题，避免昼/夜闪烁（FOUC）。默认昼模式，用户切换后记忆其选择。
       (function () {
         try {
           var t = localStorage.getItem("treehole-theme");
-          if (t !== "day" && t !== "night") {
-            t = window.matchMedia("(prefers-color-scheme: light)").matches ? "day" : "night";
-          }
+          if (t !== "day" && t !== "night") t = "day";
           document.documentElement.dataset.theme = t;
         } catch (e) {
-          document.documentElement.dataset.theme = "night";
+          document.documentElement.dataset.theme = "day";
         }
       })();
     </script>

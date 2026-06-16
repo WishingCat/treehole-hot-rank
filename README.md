@@ -27,7 +27,7 @@
 - **昼夜双主题**：
   - 夜·墨 — 深墨夜底、暖米色字、朱红印，契合树洞"深夜匿名倾诉"的气质
   - 宣纸·昼 — 暖米纸底、浓墨字、朱砂印，明亮书卷感
-  - 报头右上角一键切换，偏好存入 `localStorage`，首次访问默认跟随系统 `prefers-color-scheme`，并在首帧前定主题、无闪烁
+  - 报头右上角一键切换，偏好存入 `localStorage`，首次访问默认显示昼模式，并在首帧前定主题、无闪烁
 - **字体**：正文用霞鹜文楷（经 jsdelivr CDN 加载，`font-display: swap` + unicode-range 分片），配系统衬线兜底（Songti SC / Source Han Serif / SimSun），CDN 不可达时优雅降级。
 - 响应式（桌面 / 平板 / 手机）、键盘可达、`prefers-reduced-motion` 收敛动效。
 

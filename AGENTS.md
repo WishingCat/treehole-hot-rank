@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## Project overview
 
-This is a local Node.js/Express app for a PKU Treehole dashboard. It reuses a Treehole login token from either `TREEHOLE_TOKEN`/`TREEHOLE_UUID` or Chrome localStorage, crawls Treehole's API, stores normalized posts in month-based JSON shards under `data/`, and serves a static Chinese-language dashboard from `public/`. The frontend is an editorial "夜话集 / almanac" UI with a **day/night dual theme** (toggle persisted in `localStorage`, defaulting to the system `prefers-color-scheme`), built with plain HTML/CSS/JS and no build step.
+This is a local Node.js/Express app for a PKU Treehole dashboard. It reuses a Treehole login token from either `TREEHOLE_TOKEN`/`TREEHOLE_UUID` or Chrome localStorage, crawls Treehole's API, stores normalized posts in month-based JSON shards under `data/`, and serves a static Chinese-language dashboard from `public/`. The frontend is an editorial "夜话集 / almanac" UI with a **day/night dual theme** (toggle persisted in `localStorage`, defaulting to day mode on first visit), built with plain HTML/CSS/JS and no build step.
 
 The UI has four top-level sections:
 
